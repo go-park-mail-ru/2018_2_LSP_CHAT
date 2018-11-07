@@ -34,7 +34,6 @@ func handleChatConnection(chatHash string, userID string, c *websocket.Conn) err
 	rooms[chatHash].Join(userID)
 	defer rooms[chatHash].Leave(userID)
 
-	// Send down the archive.
 	for _, event := range subscription.Archive {
 		if err := c.WriteJSON(event); err != nil {
 			return nil
@@ -58,16 +57,13 @@ func handleChatConnection(chatHash string, userID string, c *websocket.Conn) err
 		select {
 		case event := <-subscription.New:
 			if c.WriteJSON(&event) != nil {
-				// They disconnected.
 				return nil
 			}
 		case msg, ok := <-newMessages:
-			// If the channel is closed, they disconnected.
 			if !ok {
 				return nil
 			}
 
-			// Otherwise, say something.
 			rooms[chatHash].Say(userID, msg)
 		}
 	}
@@ -82,7 +78,7 @@ func GetUpdgradeConnection(env *Env, w http.ResponseWriter, r *http.Request) err
 	chatHash := chatHashURL[0]
 
 	claims := context.Get(r, "claims").(jwt.MapClaims)
-	userID := claims["id"].(string)
+	userID := int(claims["id"].(float64))
 
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
