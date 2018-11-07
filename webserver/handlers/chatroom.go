@@ -6,14 +6,10 @@ import (
 )
 
 type ChatRoom struct {
-	// Send a channel here to get room events back.  It will send the entire
-	// archive initially, and then new messages as they come in.
-	subscribe chan (chan<- Subscription)
-	// Send a channel here to unsubscribe.
+	subscribe   chan (chan<- Subscription)
 	unsubscribe chan (<-chan Event)
-	// Send events here to publish them.
-	publish chan Event
-	users   int
+	publish     chan Event
+	users       int
 }
 
 func NewChatRoom() *ChatRoom {
@@ -33,22 +29,16 @@ func MakeChatRoom() ChatRoom {
 }
 
 type Event struct {
-	Type      string // "join", "leave", or "message"
+	Type      string
 	User      string
-	Timestamp int    // Unix timestamp (secs)
-	Text      string // What the user said (if Type == "message")
+	Timestamp int
+	Text      string
 }
 
 type Subscription struct {
-	Archive []Event      // All the events from the archive.
-	New     <-chan Event // New events coming in.
+	Archive []Event
+	New     <-chan Event
 }
-
-// Owner of a subscription must cancel it when they stop listening to events.
-// func (s Subscription) Cancel() {
-// 	unsubscribe <- s.New // Unsubscribe the channel.
-// 	drain(s.New)         // Drain it, just in case there was a pending publish.
-// }
 
 func (chat *ChatRoom) Unsubscribe(s Subscription) {
 	chat.unsubscribe <- s.New
@@ -79,10 +69,8 @@ func (chat *ChatRoom) Leave(user string) {
 	chat.users--
 }
 
-const archiveSize = 10
-
-// This function loops forever, handling the chat room pubsub
 func (chat *ChatRoom) Run() {
+	const archiveSize = 10
 	archive := list.New()
 	subscribers := list.New()
 
@@ -117,13 +105,6 @@ func (chat *ChatRoom) Run() {
 	}
 }
 
-// func init() {
-// 	go chatroom()
-// }
-
-// Helpers
-
-// Drains a given channel of any messages.
 func drain(ch <-chan Event) {
 	for {
 		select {

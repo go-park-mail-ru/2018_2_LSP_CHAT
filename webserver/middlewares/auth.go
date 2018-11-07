@@ -1,7 +1,6 @@
 package middlewares
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -15,7 +14,6 @@ func Auth(next handlers.HandlerFunc) handlers.HandlerFunc {
 	return func(env *handlers.Env, w http.ResponseWriter, r *http.Request) error {
 		signature, err := r.Cookie("signature")
 		if err != nil {
-			fmt.Println("Not found")
 			return handlers.StatusData{http.StatusUnauthorized, map[string]string{"error": "No signature cookie found"}}
 		}
 
