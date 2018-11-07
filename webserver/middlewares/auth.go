@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"net/http"
+	"os"
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -26,7 +27,7 @@ func Auth(next handlers.HandlerFunc) handlers.HandlerFunc {
 
 		claims := jwt.MapClaims{}
 		_, err = jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			return []byte("abcderfs334f34r3we34"), nil
+			return []byte(os.Getenv("JWT_TOKEN")), nil
 		})
 
 		if err != nil {
