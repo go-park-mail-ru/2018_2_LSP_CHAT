@@ -107,6 +107,7 @@ func handlePrivateChatConnection(env *Env, u *user.User, c *websocket.Conn) erro
 func handleChatConnection(env *Env, chat *ChatRoom, u *user.User, c *websocket.Conn) error {
 	_, err := env.DB.Query("INSERT INTO user_chat (user_id, chat_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", u.ID, chat.id)
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 
@@ -118,11 +119,13 @@ func handleChatConnection(env *Env, chat *ChatRoom, u *user.User, c *websocket.C
 
 	archive, err := chat.GetArchive(env.DB)
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 
 	for _, msg := range archive {
 		if err := c.WriteJSON(msg); err != nil {
+			fmt.Println(err)
 			return err
 		}
 	}
@@ -312,7 +315,7 @@ func CreateNewChat(env *Env, w http.ResponseWriter, r *http.Request) error {
 
 	rooms[chat.id] = chat
 	go chat.Run()
-
+	fmt.Println("Комната запущена")
 	err = handleChatConnection(env, chat, &u, c)
 	if chat.users == 0 {
 		delete(rooms, chat.id)

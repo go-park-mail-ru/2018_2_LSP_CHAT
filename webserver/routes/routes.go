@@ -10,22 +10,22 @@ import (
 func Get() handlers.HandlersMap {
 	handlersMap := handlers.HandlersMap{}
 	handlersMap["/create"] = makeRequest(handlers.HandlersMap{
-		"get": handlers.CreateNewChat,
+		"get": middlewares.OptionalAuth(handlers.CreateNewChat),
 	})
 	handlersMap["/connect"] = makeRequest(handlers.HandlersMap{
-		"get": handlers.ConnectToChat,
+		"get": middlewares.OptionalAuth(handlers.ConnectToChat),
 	})
 	handlersMap["/chats"] = makeRequest(handlers.HandlersMap{
-		"get": handlers.GetAllCHats,
+		"get": middlewares.OptionalAuth(handlers.GetAllCHats),
 	})
 	handlersMap["/private"] = makeRequest(handlers.HandlersMap{
-		"get": handlers.ConnectToPrivateChat,
+		"get": middlewares.Auth(handlers.ConnectToPrivateChat),
 	})
 	handlersMap["/getprivatechat"] = makeRequest(handlers.HandlersMap{
-		"get": handlers.GetPrivateChatMessages,
+		"get": middlewares.Auth(handlers.GetPrivateChatMessages),
 	})
 	handlersMap["/getmychats"] = makeRequest(handlers.HandlersMap{
-		"get": handlers.GetCurrentUserChats,
+		"get": middlewares.Auth(handlers.GetCurrentUserChats),
 	})
 	return handlersMap
 }
