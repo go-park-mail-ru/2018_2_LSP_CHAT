@@ -71,7 +71,7 @@ func handlePrivateChatConnection(env *Env, u *user.User, c *websocket.Conn) erro
 				if err != nil {
 					return nil
 				}
-				event := newEvent("message", u, cmd.Params["message"])
+				event := newEvent("message", u, map[string]string{"message": cmd.Params["message"]})
 				if privateSockets[userID].WriteJSON(&event) != nil {
 					return nil
 				}

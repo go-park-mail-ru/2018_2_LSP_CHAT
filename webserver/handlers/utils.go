@@ -79,6 +79,8 @@ type historyEntry struct {
 	Author      int       `json:"author"`
 	DateCreated time.Time `json:"datecreated"`
 	Text        string    `json:"text"`
+	Resend      bool      `json:"resend"`
+	Answerto    *int      `json:"answerto"`
 }
 
 type Command struct {
