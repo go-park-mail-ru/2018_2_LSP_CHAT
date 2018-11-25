@@ -34,10 +34,6 @@ var upgrader = websocket.Upgrader{
 }
 
 func handlePrivateChatConnection(env *Env, u *user.User, c *websocket.Conn) error {
-	_, err := env.DB.Query("INSERT INTO user_chat (user_id, chat_id, private) VALUES ($1, $2, true) ON CONFLICT DO NOTHING", u.ID, chat.id)
-	if err != nil {
-		return err
-	}
 	newCommands := make(chan Command)
 	go func() {
 		var cmd Command
