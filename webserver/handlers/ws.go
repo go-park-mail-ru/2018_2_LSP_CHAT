@@ -8,9 +8,9 @@ import (
 
 	cnt "context"
 
+	rpcuser "github.com/TheSDTM/golang-grpc/user"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/go-park-mail-ru/2018_2_LSP_CHAT/user"
-	rpcuser "github.com/go-park-mail-ru/grpc/user"
 	"github.com/gorilla/context"
 	"github.com/gorilla/websocket"
 )
@@ -34,6 +34,10 @@ var upgrader = websocket.Upgrader{
 }
 
 func handlePrivateChatConnection(env *Env, u *user.User, c *websocket.Conn) error {
+	_, err := env.DB.Query("INSERT INTO user_chat (user_id, chat_id, private) VALUES ($1, $2, true) ON CONFLICT DO NOTHING", u.ID, chat.id)
+	if err != nil {
+		return err
+	}
 	newCommands := make(chan Command)
 	go func() {
 		var cmd Command
