@@ -150,7 +150,7 @@ func (chat *ChatRoom) Execute(env *Env, u *user.User, cmd Command) error {
 		if err != nil {
 			return err
 		}
-		_, err = env.DB.Query("DELETE FROM messages WHERE = room_id = $1 AND id = $2 AND author = $3 RETURNING id", chat.id, msgID, u.ID)
+		_, err = env.DB.Query("DELETE FROM messages WHERE room_id = $1 AND id = $2 AND author = $3 RETURNING id", chat.id, msgID, u.ID)
 		if err != nil {
 			return err
 		}
@@ -224,6 +224,18 @@ func (chat *ChatRoom) Execute(env *Env, u *user.User, cmd Command) error {
 		}
 		chat.publish <- newEvent("reply", u, map[string]string{"replyto": strconv.Itoa(msgID), "message": text})
 		return err
+	case "typestarted":
+		if u.ID == -1 {
+			return nil
+		}
+		chat.publish <- newEvent("typestarted", u, map[string]string{})
+		return nil
+	case "typeended":
+		if u.ID == -1 {
+			return nil
+		}
+		chat.publish <- newEvent("typeended", u, map[string]string{})
+		return nil
 	}
 	return nil
 }
@@ -238,7 +250,7 @@ func (chat *ChatRoom) GetArchive(db *sql.DB) ([]historyEntry, error) {
 	result := make([]historyEntry, 0)
 	for rows.Next() {
 		var entry historyEntry
-		err = rows.Scan(&entry.ID, &entry.Author, &entry.DateCreated, &entry.Text, &entry.Resend, entry.Answerto)
+		err = rows.Scan(&entry.ID, &entry.Author, &entry.DateCreated, &entry.Text, &entry.Resend, &entry.Answerto)
 		if err != nil {
 			return nil, err
 		}

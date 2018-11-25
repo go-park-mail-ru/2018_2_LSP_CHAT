@@ -78,27 +78,6 @@ func handlePrivateChatConnection(env *Env, u *user.User, c *websocket.Conn) erro
 				if privateSockets[u.ID].WriteJSON(&event) != nil {
 					return nil
 				}
-				// case "list":
-				// 	_, ok = cmd.Params["user"]
-				// 	if !ok {
-				// 		return nil
-				// 	}
-				// 	userID, err := strconv.Atoi(cmd.Params["user"])
-				// 	if err != nil {
-				// 		return nil
-				// 	}
-				// 	_, err = env.DB.Query("SELECT author, text, date_created FROM private_messages WHERE author = $1 AND to = $2 OR author = $2 AND to = $1 ORDER BY date_created", u.ID, userID, cmd.Params["message"])
-				// 	if err != nil {
-				// 		return nil
-				// 	}
-
-				// 	event := newEvent("message", strconv.Itoa(u.ID), cmd.Params["message"])
-				// 	if privateSockets[userID].WriteJSON(&event) != nil {
-				// 		return nil
-				// 	}
-				// 	if privateSockets[u.ID].WriteJSON(&event) != nil {
-				// 		return nil
-				// 	}
 			}
 		}
 	}
