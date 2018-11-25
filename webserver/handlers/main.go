@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
 // StatusData represents an error with an associated HTTP status code.
@@ -32,8 +33,9 @@ func (se StatusData) Status() int {
 
 // A (simple) example of our application-wide configuration.
 type Env struct {
-	DB     *sql.DB
-	Logger *zap.SugaredLogger
+	DB       *sql.DB
+	Logger   *zap.SugaredLogger
+	GrcpConn *grpc.ClientConn
 }
 
 // HandlerFunc func for Handler

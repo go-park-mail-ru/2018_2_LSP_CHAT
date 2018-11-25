@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/go-park-mail-ru/2018_2_LSP_CHAT/webserver/handlers"
 	"github.com/go-park-mail-ru/2018_2_LSP_CHAT/webserver/routes"
+	"google.golang.org/grpc"
 
 	zap "go.uber.org/zap"
 )
@@ -18,9 +20,22 @@ func Run(addr string, db *sql.DB) {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 	sugar := logger.Sugar()
+
+	grcpConn, err := grpc.Dial(
+		os.Getenv("GRPC_URL")+":2020",
+		grpc.WithInsecure(),
+	)
+
+	if err != nil {
+		log.Fatal("Can't connect to grcp")
+		return
+	}
+	defer grcpConn.Close()
+
 	env := &handlers.Env{
-		DB:     db,
-		Logger: sugar,
+		DB:       db,
+		Logger:   sugar,
+		GrcpConn: grcpConn,
 	}
 
 	handlersMap := routes.Get()

@@ -56,25 +56,25 @@ func NewChatRoom(db *sql.DB, chatPassword *string, title *string) *ChatRoom {
 	return c
 }
 
-func NewPrivateChatRoom(user1 int, user2 int, db *sql.DB) *ChatRoom {
-	c := new(ChatRoom)
-	c.subscribe = make(chan (chan<- Subscription), 10)
-	c.unsubscribe = make(chan (<-chan Event), 10)
-	c.publish = make(chan Event, 10)
-	c.private = true
-	c.privateData.user1 = user1
-	c.privateData.user2 = user2
-	if db != nil {
-		rows, err := db.Query("INSERT INTO private_rooms(user1, user2) VALUES () RETURNING id", user1, user2)
-		if err != nil {
-			return nil
-		}
-		if rows.Scan(c.id) == nil {
-			return nil
-		}
-	}
-	return c
-}
+// func NewPrivateChatRoom(user1 int, user2 int, db *sql.DB) *ChatRoom {
+// 	c := new(ChatRoom)
+// 	c.subscribe = make(chan (chan<- Subscription), 10)
+// 	c.unsubscribe = make(chan (<-chan Event), 10)
+// 	c.publish = make(chan Event, 10)
+// 	c.private = true
+// 	c.privateData.user1 = user1
+// 	c.privateData.user2 = user2
+// 	if db != nil {
+// 		rows, err := db.Query("INSERT INTO private_rooms(user1, user2) VALUES () RETURNING id", user1, user2)
+// 		if err != nil {
+// 			return nil
+// 		}
+// 		if rows.Scan(c.id) == nil {
+// 			return nil
+// 		}
+// 	}
+// 	return c
+// }
 
 // func MakeChatRoom() ChatRoom {
 // 	c := ChatRoom{}
@@ -86,9 +86,12 @@ func NewPrivateChatRoom(user1 int, user2 int, db *sql.DB) *ChatRoom {
 
 type Event struct {
 	Type      string
-	User      string
 	Timestamp int
 	Text      string
+	User      struct {
+		ID       int
+		Username string
+	}
 }
 
 type Subscription struct {
@@ -105,8 +108,14 @@ func (chat *ChatRoom) Unsubscribe(s Subscription) {
 	drain(s.New)
 }
 
-func newEvent(typ, user, msg string) Event {
-	return Event{typ, user, int(time.Now().Unix()), msg}
+func newEvent(typ string, u *user.User, msg string) Event {
+	event := Event{}
+	event.Type = typ
+	event.Timestamp = int(time.Now().Unix())
+	event.User.ID = u.ID
+	event.User.Username = u.Username
+	event.Text = msg
+	return event
 }
 
 func (chat *ChatRoom) Subscribe() Subscription {
@@ -132,6 +141,48 @@ func (chat *ChatRoom) Execute(env *Env, u *user.User, cmd Command) error {
 			return err
 		}
 		chat.Say(u, msg)
+		return err
+	case "delete":
+		msg, exists := cmd.Params["message"]
+		if !exists {
+			return nil
+		}
+		msgID, err := strconv.Atoi(msg)
+		if err != nil {
+			return err
+		}
+		if chat.private {
+			_, err = env.DB.Query("DELETE FROM private_messages WHERE id = $1 AND author = $2", msgID, u.ID)
+		} else {
+			_, err = env.DB.Query("DELETE FROM messages WHERE = room_id = $1 AND id = $2 AND author = $3 RETURNING id", chat.id, msgID, u.ID)
+		}
+		if err != nil {
+			return err
+		}
+		chat.publish <- newEvent("delete", u, "Removed message number "+msg)
+		return err
+	case "alter":
+		msg, exists := cmd.Params["message"]
+		if !exists {
+			return nil
+		}
+		text, exists := cmd.Params["text"]
+		if !exists {
+			return nil
+		}
+		msgID, err := strconv.Atoi(msg)
+		if err != nil {
+			return err
+		}
+		if chat.private {
+			_, err = env.DB.Query("UPDATE private_messages SET text = $3 WHERE id = $1 AND author = $2", msgID, u.ID, text)
+		} else {
+			_, err = env.DB.Query("UPDATE private_messages SET text = $3 WHERE = room_id = $1 AND id = $2 AND author = $3 RETURNING id", chat.id, msgID, u.ID, text)
+		}
+		if err != nil {
+			return err
+		}
+		chat.publish <- newEvent("altered", u, "Altered message "+msg+". New contents: "+text)
 		return err
 	}
 	return nil
@@ -161,16 +212,16 @@ func (chat *ChatRoom) GetArchive(db *sql.DB) ([]historyEntry, error) {
 }
 
 func (chat *ChatRoom) Join(u *user.User) {
-	chat.publish <- newEvent("join", strconv.Itoa(u.ID), "")
+	chat.publish <- newEvent("join", u, "")
 	chat.users++
 }
 
 func (chat *ChatRoom) Say(u *user.User, message string) {
-	chat.publish <- newEvent("message", strconv.Itoa(u.ID), message)
+	chat.publish <- newEvent("message", u, message)
 }
 
 func (chat *ChatRoom) Leave(u *user.User) {
-	chat.publish <- newEvent("leave", strconv.Itoa(u.ID), "")
+	chat.publish <- newEvent("leave", u, "")
 	chat.users--
 }
 

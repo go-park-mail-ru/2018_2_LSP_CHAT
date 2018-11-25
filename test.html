@@ -6,7 +6,7 @@
     <title>Page Title</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script>
-        var socket = new WebSocket("ws://localhost:8080/private?user=2&password=tests", "optionalProtocol");
+        var socket = new WebSocket("wss://jackal.online/api/chats/create", "optionalProtocol");
         socket.onopen = function() {
            console.log("Соединение установлено.");
         };

@@ -24,6 +24,9 @@ func Get() handlers.HandlersMap {
 	handlersMap["/getprivatechat"] = makeRequest(handlers.HandlersMap{
 		"get": handlers.GetPrivateChatMessages,
 	})
+	handlersMap["/getmychats"] = makeRequest(handlers.HandlersMap{
+		"get": handlers.GetCurrentUserChats,
+	})
 	return handlersMap
 }
 
@@ -32,7 +35,7 @@ func makeRequest(handlersMap handlers.HandlersMap) handlers.HandlerFunc {
 		switch r.Method {
 		case http.MethodGet:
 			if _, ok := handlersMap["get"]; ok {
-				return handlersMap["get"](env, w, r)
+				return middlewares.Cors(handlersMap["get"])(env, w, r)
 			} else {
 				return middlewares.Cors(handlers.DefaultHandler)(env, w, r)
 			}

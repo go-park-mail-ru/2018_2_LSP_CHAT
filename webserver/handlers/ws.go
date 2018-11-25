@@ -6,8 +6,11 @@ import (
 	"net/http"
 	"strconv"
 
+	cnt "context"
+
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/go-park-mail-ru/2018_2_LSP_CHAT/user"
+	rpcuser "github.com/go-park-mail-ru/grpc/user"
 	"github.com/gorilla/context"
 	"github.com/gorilla/websocket"
 )
@@ -46,10 +49,6 @@ func handlePrivateChatConnection(env *Env, u *user.User, c *websocket.Conn) erro
 
 	for {
 		select {
-		// case event := <-subscription.New:
-		// 	if c.WriteJSON(&event) != nil {
-		// 		return nil
-		// 	}
 		case cmd, ok := <-newCommands:
 			if !ok {
 				return nil
@@ -72,7 +71,7 @@ func handlePrivateChatConnection(env *Env, u *user.User, c *websocket.Conn) erro
 				if err != nil {
 					return nil
 				}
-				event := newEvent("message", strconv.Itoa(u.ID), cmd.Params["message"])
+				event := newEvent("message", u, cmd.Params["message"])
 				if privateSockets[userID].WriteJSON(&event) != nil {
 					return nil
 				}
@@ -106,6 +105,11 @@ func handlePrivateChatConnection(env *Env, u *user.User, c *websocket.Conn) erro
 }
 
 func handleChatConnection(env *Env, chat *ChatRoom, u *user.User, c *websocket.Conn) error {
+	_, err := env.DB.Query("INSERT INTO user_chat (user_id, chat_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", u.ID, chat.id)
+	if err != nil {
+		return err
+	}
+
 	subscription := chat.Subscribe()
 	defer chat.Unsubscribe(subscription)
 
@@ -168,12 +172,27 @@ func handleChatConnection(env *Env, chat *ChatRoom, u *user.User, c *websocket.C
 
 func ConnectToChat(env *Env, w http.ResponseWriter, r *http.Request) error {
 	var u user.User
-	u.ID = currUserID
-	currUserID++
+	// u.ID = currUserID
+	// currUserID++
 
 	claims := context.Get(r, "claims")
 	if claims != nil {
 		u.ID = int(claims.(jwt.MapClaims)["id"].(float64))
+		userManager := rpcuser.NewUserCheckerClient(env.GrcpConn)
+
+		ctx := cnt.Background()
+		info, err := userManager.Get(ctx,
+			&rpcuser.UserID{
+				ID: int64(u.ID),
+			})
+		if err != nil {
+			return StatusData{http.StatusInternalServerError, map[string]string{"error": "Internal server error"}}
+		}
+		u.Username = info.Username
+		u.Avatar = info.Avatar
+	} else {
+		u.ID = -1
+		u.Username = "noname"
 	}
 
 	chatIDURL, ok := r.URL.Query()["id"]
@@ -245,12 +264,25 @@ func ConnectToChat(env *Env, w http.ResponseWriter, r *http.Request) error {
 
 func CreateNewChat(env *Env, w http.ResponseWriter, r *http.Request) error {
 	var u user.User
-	u.ID = currUserID
-	currUserID++
 
 	claims := context.Get(r, "claims")
 	if claims != nil {
 		u.ID = int(claims.(jwt.MapClaims)["id"].(float64))
+		userManager := rpcuser.NewUserCheckerClient(env.GrcpConn)
+
+		ctx := cnt.Background()
+		info, err := userManager.Get(ctx,
+			&rpcuser.UserID{
+				ID: int64(u.ID),
+			})
+		if err != nil {
+			return StatusData{http.StatusInternalServerError, map[string]string{"error": "Internal server error"}}
+		}
+		u.Username = info.Username
+		u.Avatar = info.Avatar
+	} else {
+		u.ID = -1
+		u.Username = "noname"
 	}
 
 	chatTitleURL, hasTitle := r.URL.Query()["title"]
@@ -397,4 +429,24 @@ func GetPrivateChatMessages(env *Env, w http.ResponseWriter, r *http.Request) er
 		res = append(res, entry)
 	}
 	return StatusData{http.StatusOK, map[string][]historyEntry{"messages": res}}
+}
+
+func GetCurrentUserChats(env *Env, w http.ResponseWriter, r *http.Request) error {
+	var u user.User
+	claims := context.Get(r, "claims").(jwt.MapClaims)
+	u.ID = int(claims["id"].(float64))
+	rows, err := env.DB.Query("SELECT chat_id FROM user_chat WHERE user_id = $1", u.ID)
+	if err != nil {
+		return StatusData{http.StatusInternalServerError, map[string]string{"error": err.Error()}}
+	}
+	res := make([]int, 0)
+	for rows.Next() {
+		entry := 0
+		err = rows.Scan(&entry)
+		if err != nil {
+			return StatusData{http.StatusInternalServerError, map[string]string{"error": err.Error()}}
+		}
+		res = append(res, entry)
+	}
+	return StatusData{http.StatusOK, map[string][]int{"chats": res}}
 }

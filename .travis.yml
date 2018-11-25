@@ -13,7 +13,7 @@ after_success:
   stop chat
 - sshpass -p $SSH_PASS ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST docker
   run -e "DB_HOST=postgres" -e "DB_USER=$DB_USER" -e "JWT_TOKEN=$JWT_TOKEN" -e "DB_PASS=$DB_PASS"
-  -e "DB_DB=$DB_DB" --link postgres:postgres --publish 3030:8080 --name chat --rm
+  -e "DB_DB=$DB_DB" -e "GRPC_URL=82.202.226.226" --link postgres:postgres --publish 3030:8080 --name chat --rm
   chat-server
 env:
   global:
