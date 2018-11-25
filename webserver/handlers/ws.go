@@ -105,10 +105,12 @@ func handlePrivateChatConnection(env *Env, u *user.User, c *websocket.Conn) erro
 }
 
 func handleChatConnection(env *Env, chat *ChatRoom, u *user.User, c *websocket.Conn) error {
-	_, err := env.DB.Query("INSERT INTO user_chat (user_id, chat_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", u.ID, chat.id)
-	if err != nil {
-		fmt.Println(err)
-		return err
+	if u.ID != -1 {
+		_, err := env.DB.Query("INSERT INTO user_chat (user_id, chat_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", u.ID, chat.id)
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
 	}
 
 	subscription := chat.Subscribe()
