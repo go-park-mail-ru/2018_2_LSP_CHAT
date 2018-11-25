@@ -2,12 +2,24 @@ package handlers
 
 import (
 	"io/ioutil"
+	"math/rand"
 	"mime/multipart"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/go-park-mail-ru/2018_2_LSP_CHAT/user"
 )
+
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randStringRunes(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
+}
 
 func contains(s []string, e string) bool {
 	for _, a := range s {
@@ -53,4 +65,23 @@ func saveFile(file multipart.File, handle *multipart.FileHeader, id int) error {
 	}
 
 	return nil
+}
+
+type chatEntry struct {
+	ID        int    `json:"id"`
+	Players   int    `json:"players"`
+	Title     string `json:"title"`
+	Protected bool   `json:"protected"`
+}
+
+type historyEntry struct {
+	ID          int       `json:"id"`
+	Author      int       `json:"author"`
+	DateCreated time.Time `json:"datecreated"`
+	Text        string    `json:"text"`
+}
+
+type Command struct {
+	Action string            `json:"action"`
+	Params map[string]string `json:"params"`
 }

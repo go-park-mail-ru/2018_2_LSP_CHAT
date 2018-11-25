@@ -9,17 +9,22 @@ import (
 
 func Get() handlers.HandlersMap {
 	handlersMap := handlers.HandlersMap{}
-	handlersMap["/game"] = makeRequest(handlers.HandlersMap{
-		"get": middlewares.Cors(middlewares.Auth(handlers.GetUpdgradeConnection)),
+	handlersMap["/create"] = makeRequest(handlers.HandlersMap{
+		"get": handlers.CreateNewChat,
+	})
+	handlersMap["/connect"] = makeRequest(handlers.HandlersMap{
+		"get": handlers.ConnectToChat,
+	})
+	handlersMap["/chats"] = makeRequest(handlers.HandlersMap{
+		"get": handlers.GetAllCHats,
+	})
+	handlersMap["/private"] = makeRequest(handlers.HandlersMap{
+		"get": handlers.ConnectToPrivateChat,
+	})
+	handlersMap["/getprivatechat"] = makeRequest(handlers.HandlersMap{
+		"get": handlers.GetPrivateChatMessages,
 	})
 	return handlersMap
-}
-
-type CRUDHandler struct {
-	PostHandler   handlers.HandlerFunc
-	GetHandler    handlers.HandlerFunc
-	PutHandler    handlers.HandlerFunc
-	DeleteHandler handlers.HandlerFunc
 }
 
 func makeRequest(handlersMap handlers.HandlersMap) handlers.HandlerFunc {
@@ -53,29 +58,4 @@ func makeRequest(handlersMap handlers.HandlersMap) handlers.HandlerFunc {
 			return middlewares.Cors(handlers.DefaultHandler)(env, w, r)
 		}
 	}
-}
-
-func makeCRUDHandler(handlersMap handlers.HandlersMap) CRUDHandler {
-	var handler CRUDHandler
-	if _, ok := handlersMap["post"]; ok {
-		handler.PostHandler = handlersMap["post"]
-	} else {
-		handler.PostHandler = handlers.DefaultHandler
-	}
-	if _, ok := handlersMap["get"]; ok {
-		handler.GetHandler = handlersMap["get"]
-	} else {
-		handler.GetHandler = handlers.DefaultHandler
-	}
-	if _, ok := handlersMap["put"]; ok {
-		handler.PutHandler = handlersMap["put"]
-	} else {
-		handler.PutHandler = handlers.DefaultHandler
-	}
-	if _, ok := handlersMap["delete"]; ok {
-		handler.DeleteHandler = handlersMap["delete"]
-	} else {
-		handler.DeleteHandler = handlers.DefaultHandler
-	}
-	return handler
 }
